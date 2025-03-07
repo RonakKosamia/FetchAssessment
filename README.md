@@ -13,7 +13,7 @@ It follows **Clean Architecture + MVVM**, using:
 **StateFlow** for reactive UI updates  
 **Kotlin Coroutines** for async operations
 
-### Project Structure: 
+## Project Structure: 
 
 com.example.fetchrewards
 │── data (Handles API and Repository)
@@ -31,6 +31,7 @@ com.example.fetchrewards
 │── MainActivity.kt
 
 ## 📸 Screenshots
+<img width="300" alt="Screenshot 2025-03-07 at 2 46 13 AM" src="https://github.com/user-attachments/assets/febfc132-ddff-413d-a26e-a5ddb81c1f2e" />
 
 
 - 
