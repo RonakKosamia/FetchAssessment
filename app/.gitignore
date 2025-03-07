@@ -1,0 +1,74 @@
+# Gradle files
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local configuration files
+/local.properties
+/.idea/caches/
+/.idea/workspace.xml
+.idea/libraries/
+/.idea/navEditor.xml
+/.idea/modules.xml
+/.idea/shelf/
+/.idea/misc.xml
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Compiled files
+*.class
+*.jar
+*.war
+*.ear
+*.apk
+*.ap_
+*.aab
+*.dex
+
+# Generated folders
+captures/
+.externalNativeBuild/
+cxx/
+.idea/
+*.iml
+
+# Jetpack Compose previews
+/.previews/
+
+# Keystore files (DO NOT COMMIT REAL KEYSTORES)
+*.keystore
+*.jks
+
+# Firebase / Google Services
+google-services.json
+*.pem
+
+# Proguard & Lint Logs
+lint/intermediates/
+lint/generated/
+lint/outputs/
+proguard/
+
+# Dependency Caches
+/.gradle/
+/build/
+/.idea/
+/app/.cxx/
+/.settings/
+
+# Android Studio / IntelliJ Project Files
+*.ipr
+*.iws
+*.idb
+
+# Testing Reports
+/test-output/
+/test-results/
+
+# Kotlin Jetpack Compose specific
+.compose-cache/
+.kotlinc/
