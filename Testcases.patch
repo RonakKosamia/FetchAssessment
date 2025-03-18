@@ -1,0 +1,212 @@
+Subject: [PATCH] Testcases
+---
+Index: app/src/main/java/com/example/fetchrewards/presentation/viewmodel/FetchViewModel.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/fetchrewards/presentation/viewmodel/FetchViewModel.kt b/app/src/main/java/com/example/fetchrewards/presentation/viewmodel/FetchViewModel.kt
+--- a/app/src/main/java/com/example/fetchrewards/presentation/viewmodel/FetchViewModel.kt	(revision b3111b3fc2a5f6c6f8786d7339c8dc8aba93e988)
++++ b/app/src/main/java/com/example/fetchrewards/presentation/viewmodel/FetchViewModel.kt	(date 1742308959029)
+@@ -18,7 +18,7 @@
+         fetchItems()
+     }
+ 
+-    private fun fetchItems() {
++    fun fetchItems() {
+         viewModelScope.launch {
+             _items.value = Result.Error("Loading...") // Show loading state
+             val fetchedItems = getSortedItemsUseCase.execute()
+Index: app/src/test/java/com/example/fetchrewards/domain/usecase/GetSortedItemsUseCaseTest.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/test/java/com/example/fetchrewards/domain/usecase/GetSortedItemsUseCaseTest.kt b/app/src/test/java/com/example/fetchrewards/domain/usecase/GetSortedItemsUseCaseTest.kt
+new file mode 100644
+--- /dev/null	(date 1742308894313)
++++ b/app/src/test/java/com/example/fetchrewards/domain/usecase/GetSortedItemsUseCaseTest.kt	(date 1742308894313)
+@@ -0,0 +1,42 @@
++package com.example.fetchrewards.domain.usecase
++
++import com.example.fetchrewards.data.repository.Result
++import com.example.fetchrewards.domain.model.FetchItem
++import com.example.fetchrewards.domain.repository.FetchRepository
++import io.mockk.*
++import kotlinx.coroutines.runBlocking
++import org.junit.Assert.*
++import org.junit.Before
++import org.junit.Test
++
++class GetSortedItemsUseCaseTest {
++    private lateinit var repository: FetchRepository
++    private lateinit var useCase: GetSortedItemsUseCase
++
++    @Before
++    fun setUp() {
++        repository = mockk()
++        useCase = GetSortedItemsUseCase(repository)
++    }
++
++    @Test
++    fun `execute returns success when repository succeeds`() = runBlocking {
++        val mockData = listOf(FetchItem(id = 1, listId = 1, name = "Item 3"))
++        coEvery { repository.getItems() } returns Result.Success(mockData)
++
++        val result = useCase.execute()
++
++        assertTrue(result is Result.Success)
++        assertEquals(1, (result as Result.Success).data.size)
++    }
++
++    @Test
++    fun `execute returns error when repository fails`() = runBlocking {
++        coEvery { repository.getItems() } returns Result.Error("Network Error")
++
++        val result = useCase.execute()
++
++        assertTrue(result is Result.Error)
++        assertEquals("Network Error", (result as Result.Error).message)
++    }
++}
+Index: app/src/test/java/com/example/fetchrewards/data/repository/FetchRepositoryTest.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/test/java/com/example/fetchrewards/data/repository/FetchRepositoryTest.kt b/app/src/test/java/com/example/fetchrewards/data/repository/FetchRepositoryTest.kt
+new file mode 100644
+--- /dev/null	(date 1742308959023)
++++ b/app/src/test/java/com/example/fetchrewards/data/repository/FetchRepositoryTest.kt	(date 1742308959023)
+@@ -0,0 +1,50 @@
++package com.example.fetchrewards.data.repository
++
++import com.example.fetchrewards.data.model.FetchItemDto
++import com.example.fetchrewards.data.remote.FetchApiService
++import com.example.fetchrewards.domain.model.FetchItem
++import io.mockk.*
++import kotlinx.coroutines.runBlocking
++import org.junit.Assert.*
++import org.junit.Before
++import org.junit.Test
++import retrofit2.Response
++
++class FetchRepositoryTest {
++    private lateinit var apiService: FetchApiService
++    private lateinit var repository: FetchRepositoryImpl
++
++    @Before
++    fun setUp() {
++        apiService = mockk()
++        repository = FetchRepositoryImpl(apiService)
++    }
++
++    @Test
++    fun `getItems returns success when API is successful`() = runBlocking {
++        // Mock API response
++        val mockResponse = listOf(
++            FetchItemDto(id = 1, listId = 1, name = "Item 10"),
++            FetchItemDto(id = 2, listId = 1, name = "Item 2")
++        )
++        coEvery { apiService.getItems() } returns Response.success(mockResponse)
++
++        val result = repository.getItems()
++
++        assertTrue(result is Result.Success)
++        assertEquals(2, (result as Result.Success).data.size)
++    }
++
++    @Test
++    fun `getItems retries on failure up to max 3 times`() = runBlocking {
++        // Mock API to return error response
++        coEvery { apiService.getItems() } returns Response.error(500, mockk(relaxed = true))
++
++        val result = repository.getItems()
++
++        assertTrue(result is Result.Error)
++        assertEquals("Failed to load data after 3 attempts.", (result as Result.Error).message)
++
++        coVerify(exactly = 3) { apiService.getItems() } // Ensure it retried 3 times
++    }
++}
+Index: app/src/test/java/com/example/fetchrewards/presentation/viewmodel/FetchViewModelTest.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/test/java/com/example/fetchrewards/presentation/viewmodel/FetchViewModelTest.kt b/app/src/test/java/com/example/fetchrewards/presentation/viewmodel/FetchViewModelTest.kt
+new file mode 100644
+--- /dev/null	(date 1742308894310)
++++ b/app/src/test/java/com/example/fetchrewards/presentation/viewmodel/FetchViewModelTest.kt	(date 1742308894310)
+@@ -0,0 +1,52 @@
++package com.example.fetchrewards.presentation.viewmodel
++
++import com.example.fetchrewards.data.repository.Result
++import com.example.fetchrewards.domain.model.FetchItem
++import com.example.fetchrewards.domain.usecase.GetSortedItemsUseCase
++import io.mockk.*
++import kotlinx.coroutines.*
++import kotlinx.coroutines.flow.first
++import kotlinx.coroutines.test.*
++import org.junit.Assert.*
++import org.junit.Before
++import org.junit.Rule
++import org.junit.Test
++
++@ExperimentalCoroutinesApi
++class FetchViewModelTest {
++    @get:Rule
++    val testDispatcher = TestCoroutineDispatcher()
++
++    private lateinit var useCase: GetSortedItemsUseCase
++    private lateinit var viewModel: FetchViewModel
++
++    @Before
++    fun setUp() {
++        Dispatchers.setMain(testDispatcher)
++        useCase = mockk()
++        viewModel = FetchViewModel(useCase)
++    }
++
++    @Test
++    fun `fetchItems updates state to Success when data is loaded`() = runBlocking {
++        val mockData = listOf(FetchItem(id = 1, listId = 1, name = "Item 5"))
++        coEvery { useCase.execute() } returns Result.Success(mockData)
++
++        viewModel.fetchItems()
++        val state = viewModel.items.first()
++
++        assertTrue(state is Result.Success)
++        assertEquals(1, (state as Result.Success).data.size)
++    }
++
++    @Test
++    fun `fetchItems updates state to Error when API fails`() = runBlocking {
++        coEvery { useCase.execute() } returns Result.Error("Server Failure")
++
++        viewModel.fetchItems()
++        val state = viewModel.items.first()
++
++        assertTrue(state is Result.Error)
++        assertEquals("Server Failure", (state as Result.Error).message)
++    }
++}
+Index: app/build.gradle.kts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+--- a/app/build.gradle.kts	(revision b3111b3fc2a5f6c6f8786d7339c8dc8aba93e988)
++++ b/app/build.gradle.kts	(date 1742308782717)
+@@ -68,6 +68,10 @@
+     androidTestImplementation(libs.androidx.junit)
+     androidTestImplementation(libs.androidx.espresso.core)
+ 
++    testImplementation(libs.junit)
++    // Unit Testing
++    testImplementation("io.mockk:mockk:1.13.5") // Mocking framework
++    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4") // Coroutine test utilities
+ 
+ }
+ 

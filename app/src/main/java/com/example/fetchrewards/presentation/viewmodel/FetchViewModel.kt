@@ -18,7 +18,7 @@ class FetchViewModel(private val getSortedItemsUseCase: GetSortedItemsUseCase) :
         fetchItems()
     }
 
-    private fun fetchItems() {
+    fun fetchItems() {
         viewModelScope.launch {
             _items.value = Result.Error("Loading...") // Show loading state
             val fetchedItems = getSortedItemsUseCase.execute()
