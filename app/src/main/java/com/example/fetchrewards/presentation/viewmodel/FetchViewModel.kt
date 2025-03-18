@@ -2,13 +2,13 @@ package com.example.fetchrewards.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.fetchrewards.data.repository.Result
 import com.example.fetchrewards.domain.model.FetchItem
 import com.example.fetchrewards.domain.usecase.GetSortedItemsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import com.example.fetchrewards.data.repository.Result
 
 class FetchViewModel(private val getSortedItemsUseCase: GetSortedItemsUseCase) : ViewModel() {
     private val _items = MutableStateFlow<Result<List<FetchItem>>>(Result.Success(emptyList()))

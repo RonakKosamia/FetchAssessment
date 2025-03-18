@@ -3,9 +3,11 @@ package com.example.fetchrewards.domain.usecase
 import com.example.fetchrewards.data.repository.Result
 import com.example.fetchrewards.domain.model.FetchItem
 import com.example.fetchrewards.domain.repository.FetchRepository
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 

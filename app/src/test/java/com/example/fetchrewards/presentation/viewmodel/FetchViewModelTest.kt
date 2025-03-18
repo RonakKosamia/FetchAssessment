@@ -4,18 +4,17 @@ import com.example.fetchrewards.TestCoroutineRule
 import com.example.fetchrewards.data.repository.Result
 import com.example.fetchrewards.domain.model.FetchItem
 import com.example.fetchrewards.domain.usecase.GetSortedItemsUseCase
-import io.mockk.*
-import kotlinx.coroutines.*
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.*
-import org.junit.Assert.*
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import com.example.fetchrewards.presentation.viewmodel.FetchViewModel
-import io.mockk.*
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.runTest
 
 @ExperimentalCoroutinesApi
 class FetchViewModelTest {

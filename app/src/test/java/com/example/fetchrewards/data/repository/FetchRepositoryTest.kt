@@ -2,10 +2,12 @@ package com.example.fetchrewards.data.repository
 
 import com.example.fetchrewards.data.model.FetchItemDto
 import com.example.fetchrewards.data.remote.FetchApiService
-import com.example.fetchrewards.domain.model.FetchItem
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import retrofit2.Response
