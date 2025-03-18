@@ -1,0 +1,395 @@
+Subject: [PATCH] ResultSealedClass
+---
+Index: app/src/main/java/com/example/fetchrewards/data/remote/RetrofitClient.kt
+===================================================================
+diff --git a/app/src/main/java/com/example/fetchrewards/data/remote/RetrofitClient.kt b/app/src/main/java/com/example/fetchrewards/data/remote/RetrofitClient.kt
+deleted file mode 100644
+--- a/app/src/main/java/com/example/fetchrewards/data/remote/RetrofitClient.kt	(revision 910b0bb0f88b05fc2256f164526db0b6ccb27903)
++++ /dev/null	(revision 910b0bb0f88b05fc2256f164526db0b6ccb27903)
+@@ -1,4 +0,0 @@
+-package com.example.fetchrewards.data.remote
+-
+-class RetrofitClient {
+-}
+\ No newline at end of file
+Index: app/src/main/java/com/example/fetchrewards/presentation/ui/FetchListScreen.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/fetchrewards/presentation/ui/FetchListScreen.kt b/app/src/main/java/com/example/fetchrewards/presentation/ui/FetchListScreen.kt
+--- a/app/src/main/java/com/example/fetchrewards/presentation/ui/FetchListScreen.kt	(revision 910b0bb0f88b05fc2256f164526db0b6ccb27903)
++++ b/app/src/main/java/com/example/fetchrewards/presentation/ui/FetchListScreen.kt	(date 1742307230924)
+@@ -5,24 +5,38 @@
+ import androidx.compose.foundation.lazy.items
+ import androidx.compose.material.*
+ import androidx.compose.runtime.*
++import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.graphics.Color
+ import androidx.compose.ui.unit.dp
+ import androidx.lifecycle.viewmodel.compose.viewModel
+ import com.example.fetchrewards.domain.model.FetchItem
+ import com.example.fetchrewards.presentation.viewmodel.FetchViewModel
++import com.example.fetchrewards.data.repository.Result
+ 
+ @Composable
+ fun FetchListScreen(viewModel: FetchViewModel = viewModel()) {
+-    val items by viewModel.items.collectAsState()
++    val result by viewModel.items.collectAsState()
+ 
+     Scaffold(
+         topBar = { TopAppBar(title = { Text("Fetch Data List") }) }
+     ) {
+         Column(modifier = Modifier.padding(it)) {
+-            FetchList(items)
++            when (result) {
++                is Result.Success -> FetchList((result as Result.Success<List<FetchItem>>).data)
++                is Result.Error -> ErrorScreen((result as Result.Error).message)
++            }
+         }
+     }
+ }
++
++@Composable
++fun ErrorScreen(message: String) {
++    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
++        Text(text = "Error: $message", color = Color.Red)
++    }
++}
++
+ 
+ @Composable
+ fun FetchList(items: List<FetchItem>) {
+Index: app/src/main/java/com/example/fetchrewards/presentation/viewmodel/FetchViewModel.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/fetchrewards/presentation/viewmodel/FetchViewModel.kt b/app/src/main/java/com/example/fetchrewards/presentation/viewmodel/FetchViewModel.kt
+--- a/app/src/main/java/com/example/fetchrewards/presentation/viewmodel/FetchViewModel.kt	(revision 910b0bb0f88b05fc2256f164526db0b6ccb27903)
++++ b/app/src/main/java/com/example/fetchrewards/presentation/viewmodel/FetchViewModel.kt	(date 1742308248942)
+@@ -8,10 +8,11 @@
+ import kotlinx.coroutines.flow.StateFlow
+ import kotlinx.coroutines.flow.asStateFlow
+ import kotlinx.coroutines.launch
++import com.example.fetchrewards.data.repository.Result
+ 
+ class FetchViewModel(private val getSortedItemsUseCase: GetSortedItemsUseCase) : ViewModel() {
+-    private val _items = MutableStateFlow<List<FetchItem>>(emptyList())
+-    val items: StateFlow<List<FetchItem>> = _items.asStateFlow()
++    private val _items = MutableStateFlow<Result<List<FetchItem>>>(Result.Success(emptyList()))
++    val items: StateFlow<Result<List<FetchItem>>> = _items.asStateFlow()
+ 
+     init {
+         fetchItems()
+@@ -19,19 +20,21 @@
+ 
+     private fun fetchItems() {
+         viewModelScope.launch {
++            _items.value = Result.Error("Loading...") // Show loading state
+             val fetchedItems = getSortedItemsUseCase.execute()
+-                .filter { !it.name.isNullOrBlank() }
+-//                .sortedWith(compareBy({ it.listId }, { it.name })) //TODO: if you want lexicographic sorting.
+-                .sortedWith(compareBy({ it.listId }, { it.name?.let { it1 -> extractNumber(it1) } })) //non- lexicographic sorting.
+-
+-            println("ViewModel fetched ${fetchedItems.size} items")
+             _items.value = fetchedItems
+         }
+     }
+ }
+ 
+ // ✅ Extract numeric values from name
+-private fun extractNumber(name: String): Int {
+-    return name.filter { it.isDigit() }.toIntOrNull() ?: Int.MAX_VALUE // Defaults to large number if no digits
++//private fun extractNumber(name: String): Int {
++//    return name.filter { it.isDigit() }.toIntOrNull() ?: Int.MAX_VALUE
++//}
++
++fun extractNumber(name: String): Int {
++    val numberPart = name.filter { it.isDigit() }
++    //Int.MAX_VALUE used Defaults to large number if no digits
++    return numberPart.toIntOrNull() ?: Int.MAX_VALUE // Defaults to max if no number exists
+ }
+ 
+Index: app/src/main/java/com/example/fetchrewards/data/repository/FetchRepositoryImpl.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/fetchrewards/data/repository/FetchRepositoryImpl.kt b/app/src/main/java/com/example/fetchrewards/data/repository/FetchRepositoryImpl.kt
+--- a/app/src/main/java/com/example/fetchrewards/data/repository/FetchRepositoryImpl.kt	(revision 910b0bb0f88b05fc2256f164526db0b6ccb27903)
++++ b/app/src/main/java/com/example/fetchrewards/data/repository/FetchRepositoryImpl.kt	(date 1742308248938)
+@@ -3,18 +3,36 @@
+ import com.example.fetchrewards.data.remote.FetchApiService
+ import com.example.fetchrewards.domain.model.FetchItem
+ import com.example.fetchrewards.domain.repository.FetchRepository
++import kotlinx.coroutines.delay
+ 
+ class FetchRepositoryImpl(private val apiService: FetchApiService) : FetchRepository {
+-    override suspend fun getItems(): List<FetchItem> {
+-        val response = apiService.getItems()
+-        return if (response.isSuccessful) {
+-            response.body()?.mapNotNull { dto ->
+-                dto.name?.takeIf { it.isNotBlank() }?.let {
+-                    FetchItem(id = dto.id, listId = dto.listId, name = it)
+-                }
+-            }?.sortedWith(compareBy({ it.listId }, { it.name })) ?: emptyList()
+-        } else {
+-            emptyList()
++
++    override suspend fun getItems(): Result<List<FetchItem>> {
++        var attempt = 0
++        // Initially we will start with a delay
++        var delayTime = 1000L
++        //maximum number of retries that will be allowed
++        val maxRetries = 3
++
++        while (attempt < maxRetries) {
++            val response = apiService.getItems()
++            if (response.isSuccessful) {
++                val items = response.body()?.mapNotNull { dto ->
++                    dto.name?.takeIf { it.isNotBlank() }?.let {
++                        FetchItem(id = dto.id, listId = dto.listId, name = it)
++                    }
++                }?.sortedWith(compareBy({ it.listId }, { it.name })) ?: emptyList()
++                //.sortedWith(compareBy({ it.listId }, { extractNumber(it.name) })) ?: emptyList()
++                return Result.Success(items)
++            } else {
++                attempt++
++                if (attempt == maxRetries) {
++                    return Result.Error("Failed to load data after $maxRetries attempts.")
++                }
++                delay(delayTime)
++                delayTime *= 2 // Exponential backoff (1s → 2s → 4s)
++            }
+         }
++        return Result.Error("Unexpected error occurred.")
+     }
+-}
+\ No newline at end of file
++}
+Index: app/src/main/java/com/example/fetchrewards/domain/repository/FetchRepository.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/fetchrewards/domain/repository/FetchRepository.kt b/app/src/main/java/com/example/fetchrewards/domain/repository/FetchRepository.kt
+--- a/app/src/main/java/com/example/fetchrewards/domain/repository/FetchRepository.kt	(revision 910b0bb0f88b05fc2256f164526db0b6ccb27903)
++++ b/app/src/main/java/com/example/fetchrewards/domain/repository/FetchRepository.kt	(date 1742276637555)
+@@ -1,7 +1,8 @@
+ package com.example.fetchrewards.domain.repository
+ 
++import com.example.fetchrewards.data.repository.Result
+ import com.example.fetchrewards.domain.model.FetchItem
+ 
+ interface FetchRepository {
+-    suspend fun getItems(): List<FetchItem>
++    suspend fun getItems(): Result<List<FetchItem>>
+ }
+\ No newline at end of file
+Index: .idea/deploymentTargetSelector.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/deploymentTargetSelector.xml b/.idea/deploymentTargetSelector.xml
+--- a/.idea/deploymentTargetSelector.xml	(revision 910b0bb0f88b05fc2256f164526db0b6ccb27903)
++++ b/.idea/deploymentTargetSelector.xml	(date 1742308535980)
+@@ -4,6 +4,14 @@
+     <selectionStates>
+       <SelectionState runConfigName="app">
+         <option name="selectionMode" value="DROPDOWN" />
++        <DropdownSelection timestamp="2025-03-18T14:31:33.149984Z">
++          <Target type="DEFAULT_BOOT">
++            <handle>
++              <DeviceId pluginId="LocalEmulator" identifier="path=/Users/ronakkosamia/.android/avd/Small_Phone_API_Baklava.avd" />
++            </handle>
++          </Target>
++        </DropdownSelection>
++        <DialogSelection />
+       </SelectionState>
+     </selectionStates>
+   </component>
+Index: app/src/main/java/com/example/fetchrewards/domain/usecase/GetSortedItemUseCase.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/fetchrewards/domain/usecase/GetSortedItemUseCase.kt b/app/src/main/java/com/example/fetchrewards/domain/usecase/GetSortedItemUseCase.kt
+--- a/app/src/main/java/com/example/fetchrewards/domain/usecase/GetSortedItemUseCase.kt	(revision 910b0bb0f88b05fc2256f164526db0b6ccb27903)
++++ b/app/src/main/java/com/example/fetchrewards/domain/usecase/GetSortedItemUseCase.kt	(date 1742308248940)
+@@ -1,10 +1,11 @@
+ package com.example.fetchrewards.domain.usecase
+ 
++import com.example.fetchrewards.data.repository.Result
+ import com.example.fetchrewards.domain.model.FetchItem
+ import com.example.fetchrewards.domain.repository.FetchRepository
+ 
+ class GetSortedItemsUseCase(private val repository: FetchRepository) {
+-    suspend fun execute(): List<FetchItem> {
++    suspend fun execute(): Result<List<FetchItem>> {
+         return repository.getItems()
+     }
+ }
+\ No newline at end of file
+Index: app/src/main/java/com/example/fetchrewards/data/repository/Result.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/fetchrewards/data/repository/Result.kt b/app/src/main/java/com/example/fetchrewards/data/repository/Result.kt
+new file mode 100644
+--- /dev/null	(date 1742276637547)
++++ b/app/src/main/java/com/example/fetchrewards/data/repository/Result.kt	(date 1742276637547)
+@@ -0,0 +1,6 @@
++package com.example.fetchrewards.data.repository
++
++sealed class Result<out T> {
++    data class Success<T>(val data: T) : Result<T>()
++    data class Error(val message: String) : Result<Nothing>()
++}
+Index: app/build.gradle.kts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+--- a/app/build.gradle.kts	(revision 910b0bb0f88b05fc2256f164526db0b6ccb27903)
++++ b/app/build.gradle.kts	(date 1742308535933)
+@@ -3,10 +3,10 @@
+     alias(libs.plugins.kotlin.android)
+ }
+ 
++
+ android {
+     namespace = "com.example.fetchrewards"
+     compileSdk = 35
+-
+     defaultConfig {
+         applicationId = "com.example.fetchrewards"
+         minSdk = 24
+@@ -67,5 +67,7 @@
+     testImplementation(libs.junit)
+     androidTestImplementation(libs.androidx.junit)
+     androidTestImplementation(libs.androidx.espresso.core)
++
++
+ }
+ 
+Index: .idea/inspectionProfiles/Project_Default.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/inspectionProfiles/Project_Default.xml b/.idea/inspectionProfiles/Project_Default.xml
+new file mode 100644
+--- /dev/null	(date 1742276387474)
++++ b/.idea/inspectionProfiles/Project_Default.xml	(date 1742276387474)
+@@ -0,0 +1,47 @@
++<component name="InspectionProjectProfileManager">
++  <profile version="1.0">
++    <option name="myName" value="Project Default" />
++    <inspection_tool class="ComposePreviewDimensionRespectsLimit" enabled="true" level="WARNING" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="ComposePreviewMustBeTopLevelFunction" enabled="true" level="ERROR" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="ComposePreviewNeedsComposableAnnotation" enabled="true" level="ERROR" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="ComposePreviewNotSupportedInUnitTestFiles" enabled="true" level="ERROR" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="GlancePreviewDimensionRespectsLimit" enabled="true" level="WARNING" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="GlancePreviewMustBeTopLevelFunction" enabled="true" level="ERROR" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="GlancePreviewNeedsComposableAnnotation" enabled="true" level="ERROR" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="GlancePreviewNotSupportedInUnitTestFiles" enabled="true" level="ERROR" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="PreviewAnnotationInFunctionWithParameters" enabled="true" level="ERROR" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="PreviewApiLevelMustBeValid" enabled="true" level="ERROR" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="PreviewDeviceShouldUseNewSpec" enabled="true" level="WEAK WARNING" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="PreviewFontScaleMustBeGreaterThanZero" enabled="true" level="ERROR" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="PreviewMultipleParameterProviders" enabled="true" level="ERROR" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="PreviewPickerAnnotation" enabled="true" level="ERROR" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
++  </profile>
++</component>
+\ No newline at end of file
+Index: .idea/emulatorDisplays.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/emulatorDisplays.xml b/.idea/emulatorDisplays.xml
+new file mode 100644
+--- /dev/null	(date 1742308535980)
++++ b/.idea/emulatorDisplays.xml	(date 1742308535980)
+@@ -0,0 +1,47 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="EmulatorDisplays">
++    <option name="displayStateByAvdFolder">
++      <map>
++        <entry key="$USER_HOME$/.android/avd/Automotive_Portrait_API_34-ext9.avd">
++          <value>
++            <MultiDisplayState>
++              <option name="displayDescriptors">
++                <list>
++                  <DisplayDescriptor>
++                    <option name="height" value="1280" />
++                    <option name="width" value="800" />
++                  </DisplayDescriptor>
++                  <DisplayDescriptor>
++                    <option name="displayId" value="6" />
++                    <option name="height" value="600" />
++                    <option name="width" value="400" />
++                  </DisplayDescriptor>
++                </list>
++              </option>
++              <option name="panelState">
++                <PanelState>
++                  <option name="splitPanel">
++                    <SplitPanelState>
++                      <option name="proportion" value="0.6666666865348816" />
++                      <option name="firstComponent">
++                        <PanelState>
++                          <option name="displayId" value="0" />
++                        </PanelState>
++                      </option>
++                      <option name="secondComponent">
++                        <PanelState>
++                          <option name="displayId" value="6" />
++                        </PanelState>
++                      </option>
++                    </SplitPanelState>
++                  </option>
++                </PanelState>
++              </option>
++            </MultiDisplayState>
++          </value>
++        </entry>
++      </map>
++    </option>
++  </component>
++</project>
+\ No newline at end of file

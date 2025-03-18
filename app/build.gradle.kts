@@ -3,10 +3,10 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
+
 android {
     namespace = "com.example.fetchrewards"
     compileSdk = 35
-
     defaultConfig {
         applicationId = "com.example.fetchrewards"
         minSdk = 24
@@ -67,5 +67,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+
 }
 
